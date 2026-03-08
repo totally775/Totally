@@ -1,0 +1,139 @@
+local player = game.Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+local flying = false
+local flySpeed = 60
+
+-- movement keys
+local keys = {
+	W = false,
+	A = false,
+	S = false,
+	D = false,
+	Up = false,
+	Down = false
+}
+
+-- GUI
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,200,0,130)
+frame.Position = UDim2.new(0,20,0,20)
+frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+local flyButton = Instance.new("TextButton", frame)
+flyButton.Size = UDim2.new(0,180,0,40)
+flyButton.Position = UDim2.new(0,10,0,10)
+flyButton.Text = "Fly"
+
+local speedBox = Instance.new("TextBox", frame)
+speedBox.Size = UDim2.new(0,180,0,30)
+speedBox.Position = UDim2.new(0,10,0,60)
+speedBox.PlaceholderText = "Fly Speed"
+speedBox.Text = ""
+
+-- fly physics
+local bv
+local bg
+
+-- input tracking
+UIS.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+
+	if input.KeyCode == Enum.KeyCode.W then keys.W = true end
+	if input.KeyCode == Enum.KeyCode.A then keys.A = true end
+	if input.KeyCode == Enum.KeyCode.S then keys.S = true end
+	if input.KeyCode == Enum.KeyCode.D then keys.D = true end
+	if input.KeyCode == Enum.KeyCode.Space then keys.Up = true end
+	if input.KeyCode == Enum.KeyCode.LeftControl then keys.Down = true end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.W then keys.W = false end
+	if input.KeyCode == Enum.KeyCode.A then keys.A = false end
+	if input.KeyCode == Enum.KeyCode.S then keys.S = false end
+	if input.KeyCode == Enum.KeyCode.D then keys.D = false end
+	if input.KeyCode == Enum.KeyCode.Space then keys.Up = false end
+	if input.KeyCode == Enum.KeyCode.LeftControl then keys.Down = false end
+end)
+
+local function startFly()
+
+	bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(9e9,9e9,9e9)
+	bv.Parent = hrp
+
+	bg = Instance.new("BodyGyro")
+	bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
+	bg.P = 1000
+	bg.Parent = hrp
+
+	RunService.RenderStepped:Connect(function()
+
+		if not flying then return end
+
+		local cam = workspace.CurrentCamera
+		bg.CFrame = cam.CFrame
+
+		local direction = Vector3.zero
+
+		if keys.W then
+			direction += cam.CFrame.LookVector
+		end
+
+		if keys.S then
+			direction -= cam.CFrame.LookVector
+		end
+
+		if keys.A then
+			direction -= cam.CFrame.RightVector
+		end
+
+		if keys.D then
+			direction += cam.CFrame.RightVector
+		end
+
+		if keys.Up then
+			direction += Vector3.new(0,1,0)
+		end
+
+		if keys.Down then
+			direction -= Vector3.new(0,1,0)
+		end
+
+		bv.Velocity = direction * flySpeed
+
+	end)
+
+end
+
+local function stopFly()
+
+	if bv then bv:Destroy() end
+	if bg then bg:Destroy() end
+
+end
+
+flyButton.MouseButton1Click:Connect(function()
+
+	local speed = tonumber(speedBox.Text)
+	if speed then
+		flySpeed = speed
+	end
+
+	flying = not flying
+
+	if flying then
+		flyButton.Text = "Stop Fly"
+		startFly()
+	else
+		flyButton.Text = "Fly"
+		stopFly()
+	end
+
+end)
