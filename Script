@@ -1,0 +1,142 @@
+local player = game.Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+local flying = false
+local flySpeed = 60
+
+-- movement states
+local move = {
+	forward = false,
+	back = false,
+	left = false,
+	right = false,
+	up = false,
+	down = false
+}
+
+-- GUI
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,200,0,200)
+frame.Position = UDim2.new(0,20,0,20)
+frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+
+-- Fly button
+local flyButton = Instance.new("TextButton", frame)
+flyButton.Size = UDim2.new(0,180,0,35)
+flyButton.Position = UDim2.new(0,10,0,10)
+flyButton.Text = "Fly"
+
+-- Speed box
+local speedBox = Instance.new("TextBox", frame)
+speedBox.Size = UDim2.new(0,180,0,30)
+speedBox.Position = UDim2.new(0,10,0,50)
+speedBox.PlaceholderText = "Fly Speed"
+
+-- Mobile control frame
+local controls = Instance.new("Frame", gui)
+controls.Size = UDim2.new(0,200,0,200)
+controls.Position = UDim2.new(0,20,1,-220)
+controls.BackgroundTransparency = 1
+
+-- create button helper
+local function makeButton(text,x,y)
+	local b = Instance.new("TextButton", controls)
+	b.Size = UDim2.new(0,50,0,50)
+	b.Position = UDim2.new(0,x,0,y)
+	b.Text = text
+	b.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	return b
+end
+
+local forward = makeButton("↑",75,0)
+local back = makeButton("↓",75,100)
+local left = makeButton("←",0,50)
+local right = makeButton("→",150,50)
+local up = makeButton("Up",75,150)
+local down = makeButton("Dn",75,50)
+
+-- input handlers
+forward.MouseButton1Down:Connect(function() move.forward = true end)
+forward.MouseButton1Up:Connect(function() move.forward = false end)
+
+back.MouseButton1Down:Connect(function() move.back = true end)
+back.MouseButton1Up:Connect(function() move.back = false end)
+
+left.MouseButton1Down:Connect(function() move.left = true end)
+left.MouseButton1Up:Connect(function() move.left = false end)
+
+right.MouseButton1Down:Connect(function() move.right = true end)
+right.MouseButton1Up:Connect(function() move.right = false end)
+
+up.MouseButton1Down:Connect(function() move.up = true end)
+up.MouseButton1Up:Connect(function() move.up = false end)
+
+down.MouseButton1Down:Connect(function() move.down = true end)
+down.MouseButton1Up:Connect(function() move.down = false end)
+
+-- fly physics
+local bv
+local bg
+
+RunService.RenderStepped:Connect(function()
+
+	if not flying then return end
+
+	local cam = workspace.CurrentCamera
+	bg.CFrame = cam.CFrame
+
+	local dir = Vector3.zero
+
+	if move.forward then dir += cam.CFrame.LookVector end
+	if move.back then dir -= cam.CFrame.LookVector end
+	if move.left then dir -= cam.CFrame.RightVector end
+	if move.right then dir += cam.CFrame.RightVector end
+	if move.up then dir += Vector3.new(0,1,0) end
+	if move.down then dir -= Vector3.new(0,1,0) end
+
+	bv.Velocity = dir * flySpeed
+
+end)
+
+local function startFly()
+
+	bv = Instance.new("BodyVelocity")
+	bv.MaxForce = Vector3.new(9e9,9e9,9e9)
+	bv.Parent = hrp
+
+	bg = Instance.new("BodyGyro")
+	bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
+	bg.P = 1000
+	bg.Parent = hrp
+
+end
+
+local function stopFly()
+
+	if bv then bv:Destroy() end
+	if bg then bg:Destroy() end
+
+end
+
+flyButton.MouseButton1Click:Connect(function()
+
+	local speed = tonumber(speedBox.Text)
+	if speed then flySpeed = speed end
+
+	flying = not flying
+
+	if flying then
+		flyButton.Text = "Stop Fly"
+		startFly()
+	else
+		flyButton.Text = "Fly"
+		stopFly()
+	end
+
+end)
